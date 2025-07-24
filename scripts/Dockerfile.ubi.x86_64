@@ -1,0 +1,76 @@
+ARG BASE_IMAGE=registry.access.redhat.com/ubi9/ubi:9.6-1752625787
+
+FROM ${BASE_IMAGE}
+
+ARG PLATFORM_NAME=el9
+ENV PLATFORM_NAME=${PLATFORM_NAME}
+
+ARG PYTHON_VER=3.12
+ENV PYTHON=python${PYTHON_VER}
+ENV PIP=pip${PYTHON_VER}
+
+RUN dnf install -y \
+    ${PYTHON} \
+    ${PYTHON}-devel \
+    ${PYTHON}-pip \
+    git \
+    gcc \
+    gcc-c++ \
+    glibc-devel \
+    gdb \
+    make \
+    cmake \
+    golang \
+    automake \
+    libffi-devel \
+    libtool \
+    pkgconfig \
+    wget \
+    unzip \
+    tar \
+    bzip2 \
+    openssl-devel \
+    libaio \
+    libstdc++-static \
+    llvm-toolset \
+    ninja-build \
+    openblas \
+    openblas-devel \
+    zip \
+    zlib-devel \
+    libcurl-devel \
+    libuuid-devel \
+    perl-IPC-Cmd \
+    perl-Digest-SHA \
+    perl-FindBin \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
+
+RUN ${PYTHON} -m venv /opt/app-root \
+    && echo ". /opt/app-root/bin/activate" >> ~/.bashrc
+
+ENV PATH="/opt/app-root/bin:$PATH"
+
+RUN pip install conan==1.64.1 \
+    && pip install --upgrade pip build
+
+# Install rust
+RUN curl https://sh.rustup.rs -sSf | \
+    sh -s -- --default-toolchain=1.78 -y \
+    && . $HOME/.cargo/env
+
+# Symlink cblas.h into standard include path
+RUN for file in /usr/include/openblas/*; do \
+      ln -s "$file" /usr/include/"$(basename "$file")"; \
+    done
+
+ENV PATH="/root/.cargo/bin:$PATH"
+ENV CARGO_HOME="/root/.cargo"
+
+RUN mkdir -p /workspace
+
+WORKDIR  /workspace
+
+COPY build_milvus_lite.sh /workspace/build_milvus_lite.sh
+
+RUN chmod +x /workspace/build_milvus_lite.sh

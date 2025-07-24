@@ -33,7 +33,11 @@ MILVUS_ROOT = str(pathlib.Path(__file__).absolute().parent.parent / 'thirdparty'
 class CMakeBuild(_bdist_wheel):
     def finalize_options(self):
         if sys.platform.lower() == 'linux':
-            self.plat_name = f"manylinux2014_{platform.machine().lower()}"
+            platform_name = os.environ.get("PLATFORM_NAME", "")
+            if platform_name:
+                self.plat_name = f"{platform_name}_{platform.machine().lower()}"
+            else:
+                self.plat_name = f"manylinux2014_{platform.machine().lower()}"
         elif sys.platform.lower() == 'darwin':
             if platform.machine().lower() == 'arm64':
                 self.plat_name = f"macosx_11_0_{platform.machine().lower()}"
@@ -123,7 +127,7 @@ class CMakeBuild(_bdist_wheel):
         else:
             raise RuntimeError('Unsupport platform: %s', sys.platform)
         shutil.copy(os.path.join(build_temp, 'lib', MILVUS_BIN), os.path.join(dst_lib_path, MILVUS_BIN))
-        
+
         super().run()
 
 

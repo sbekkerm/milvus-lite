@@ -19,21 +19,30 @@
 TAG="main"
 IMAGE_TAG="latest"
 
+if command -v podman &> /dev/null; then
+    CONTAINER_ENG="podman"
+elif command -v docker &> /dev/null; then
+    CONTAINER_ENG="docker"
+else
+    echo "Container engine is not installed on the system."
+    exit 1
+fi
+
 if [ "$#" -eq 0 ]; then
     echo "Please set dockerfile path"
 elif [ "$#" -eq 1 ]; then
     DOCKERFILE=$1
-    docker build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
-        && docker run --rm -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
+    $CONTAINER_ENG build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
+        && $CONTAINER_ENG run --rm -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
 elif [ "$#" -eq 2 ]; then
     DOCKERFILE=$1
     TAG=$2
-    docker build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
-        && docker run --rm -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
+    $CONTAINER_ENG build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
+        && $CONTAINER_ENG run --rm -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
 elif [ "$#" -eq 3 ]; then
     DOCKERFILE=$1
     TAG=$2
     CACAN_CACHE=$3
-    docker build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
-        && docker run --rm -e CONAN_USER_HOME=/workspace/conan -v $CACAN_CACHE:/workspace/conan -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
+    $CONTAINER_ENG build -t build_milvus_lite:$IMAGE_TAG -f $DOCKERFILE . \
+        && $CONTAINER_ENG run --rm -e CONAN_USER_HOME=/workspace/conan -v $CACAN_CACHE:/workspace/conan:Z -v $PWD:/workspace/dist build_milvus_lite:$IMAGE_TAG /workspace/build_milvus_lite.sh $TAG
 fi
